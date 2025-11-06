@@ -1,0 +1,19 @@
+
+
+name: CI Pipeline
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v3
+      
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+      
+      - name: Ejecutar tests
+        run: pytest
+
+        
