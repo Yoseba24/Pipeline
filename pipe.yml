@@ -1,19 +1,46 @@
 
 
-name: CI Pipeline
-on: [push]
+name: Auto Tag on Push to Master
+
+on:
+  push:
+    branches:
+      - master     # Ejecutar solo en la rama master
 
 jobs:
-  build:
+  tag:
     runs-on: ubuntu-latest
-    steps:
-      - name: Descargar el código
-        uses: actions/checkout@v3
-      
-      - name: Instalar dependencias
-        run: pip install -r requirements.txt
-      
-      - name: Ejecutar tests
-        run: pytest
 
-        
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Necesario para obtener el historial completo y los tags
+
+      - name: Configurar usuario de git
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Obtener el último tag
+        id: get_last_tag
+        run: |
+          last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Último tag: $last_tag"
+          echo "last_tag=$last_tag" >> $GITHUB_OUTPUT
+
+      - name: Generar nuevo tag
+        id: new_tag
+        run: |
+          last_tag=${{ steps.get_last_tag.outputs.last_tag }}
+          IFS='.' read -r major minor patch <<< "${last_tag#v}"
+          new_tag="v$major.$minor.$((patch+1))"
+          echo "Nuevo tag: $new_tag"
+          echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
+
+      - name: Crear y subir nuevo tag
+        run: |
+          git tag ${{ steps.new_tag.outputs.new_tag }}
+          git push origin ${{ steps.new_tag.outputs.new_tag }}
+
+          
